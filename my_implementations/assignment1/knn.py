@@ -24,16 +24,20 @@ class KNN(object):
         n_samples = X_test.shape[0]
         y_pred = np.ndarray((n_samples, ))
 
-        for i in range(n_samples):
-            l1_dist = np.sum(np.abs(self.X_train - X_test[i, :]), axis=1)
+        dot_product = X_test.dot(self.X_train.T)
+        a2 = np.sum(self.X_train**2, axis=1)
+        b2 = np.sum(X_test**2, axis=1)
+        dists = a2 + b2.reshape((-1, 1)) - 2*dot_product
 
-            # This line gets the indices of the k smallest values in l1_dist
-            # see https://stackoverflow.com/a/23734295
-            top_k = np.argpartition(l1_dist, self.k)[:self.k]
+        # This line gets the indices of the k smallest values in l1_dist
+        # see https://stackoverflow.com/a/23734295
+        top_k = np.argpartition(dists, self.k, axis=1)[:, :self.k]
 
-            # Find the classes of the closest matches
-            top_k = [self.y_train[idx] for idx in top_k]
+        # Get the labels for the training samples that we have picked
+        top_k =  self.y_train[top_k]
 
-            # Find most frequent class label
-            y_pred[i] = np.argmax(np.bincount(top_k))
+        # Find the most frequent class label in every row
+        f = lambda x : np.argmax(np.bincount(x))
+        y_pred = np.apply_along_axis(f, axis=1, arr=top_k)
+
         return y_pred

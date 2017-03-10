@@ -123,3 +123,15 @@ def accuracy(expected_Y, Y):
         return eq_count/total
     else:
         raise NotImplementedError('accuracy has not been implemented for vectorized output')
+
+def load_tiny():
+    """
+    Load 5000 training samples and 500 test samples
+    """
+    X_train, y_train = load_batches(count=1, vectorize=False)
+    X_train, y_train = X_train[:5000], y_train[:5000]
+
+    X_test, y_test = load_test_batch(vectorize=False)
+    X_test, y_test = X_test[:500], y_test[:500]
+
+    return X_train, y_train, X_test, y_test
