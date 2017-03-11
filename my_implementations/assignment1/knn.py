@@ -3,7 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from cifar import *
+from ..cifar import *
 
 class KNN(object):
 
@@ -41,3 +41,16 @@ class KNN(object):
         y_pred = np.apply_along_axis(f, axis=1, arr=top_k)
 
         return y_pred
+
+def test():
+    X_train, y_train, X_test, y_test = load_tiny()
+
+    knn = KNN()
+    knn.fit(X_train, y_train, k=5)
+
+    y_pred = knn.predict(X_test)
+    accuracy = np.mean(y_pred == y_test)
+    print('Accuracy: {}'.format(accuracy))
+
+if __name__ == '__main__':
+    test()
