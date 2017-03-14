@@ -70,22 +70,18 @@ def svm_loss_vectorized(W, X, y, reg):
     num_train = X.shape[0]
     loss = 0.0
 
-    scores = X.dot(W).T
-    correct_class_scores = np.choose(y, scores)
-    loss = np.maximum(scores - correct_class_scores + 1, 0)
-    loss[y, np.arange(num_train)] = 0
+    scores = X.dot(W)
+    correct_class_scores = scores[np.arange(num_train), y]
+    thresh = np.maximum(scores - correct_class_scores.reshape((-1, 1)) + 1, 0)
+    thresh[np.arange(num_train), y] = 0
+    loss += thresh.sum() / num_train
 
-    loss_nz = loss != 0
-    dW += np.dot(X.T, loss_nz.T)
+    binarized = (thresh != 0).astype('float')
+    bin_sum = binarized.sum(axis=1)
+    binarized[np.arange(num_train), y] -= bin_sum
 
-    binarized_classes = np.zeros((num_train, num_classes))
-    binarized_classes[np.arange(num_train), y] = 1
-    lc = loss_nz.sum(axis=0)
-    lc_X = lc.reshape((-1, 1)) * X
-    dW -= np.dot(lc_X.T, binarized_classes)
-
+    dW += X.T.dot(binarized)
     dW /= num_train
-    loss = loss.mean()
 
     loss += 0.5 * reg * np.sum(W * W)
     dW += (reg * W)
@@ -134,14 +130,12 @@ def softmax_loss_vectorized(W, X, y, reg):
     exp_sums = exp_scores.sum(axis=1)
 
     loss = -np.log(correct_class_scores / exp_sums)
-    loss = loss.mean()
+    loss = loss.sum() / num_train
 
-    dW += X.T.dot(exp_scores / exp_sums.reshape((-1, 1)))
+    c = exp_scores / exp_sums.reshape((-1, 1))
+    c[np.arange(num_train), y] -= 1
+    dW += X.T.dot(c)
 
-    binarized_classes = np.zeros((num_train, num_classes))
-    binarized_classes[np.arange(num_train), y] = 1
-    dW -= X.T.dot(binarized_classes)
-    
     dW /= num_train
 
     loss += 0.5 * reg * np.sum(W * W)
