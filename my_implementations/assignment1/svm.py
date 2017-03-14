@@ -77,16 +77,15 @@ def svm_loss_vectorized(W, X, y, reg):
 
     loss_nz = loss != 0
     dW += np.dot(X.T, loss_nz.T)
+
+    binarized_classes = np.zeros((num_train, num_classes))
+    binarized_classes[np.arange(num_train), y] = 1
     lc = loss_nz.sum(axis=0)
     lc_X = lc.reshape((-1, 1)) * X
-
-    #TODO: Vectorize this!
-    for i in range(num_classes):
-        dW[:, i] -= lc_X[y == i].sum(axis=0)
+    dW -= np.dot(lc_X.T, binarized_classes)
 
     dW /= num_train
-
-    loss = loss.sum() / num_train
+    loss = loss.mean()
 
     loss += 0.5 * reg * np.sum(W * W)
     dW += (reg * W)
@@ -139,9 +138,9 @@ def softmax_loss_vectorized(W, X, y, reg):
 
     dW += X.T.dot(exp_scores / exp_sums.reshape((-1, 1)))
 
-    #TODO: Vectorized this
-    for i in range(num_classes):
-        dW[:, i] -= X[y == i].sum(axis=0)
+    binarized_classes = np.zeros((num_train, num_classes))
+    binarized_classes[np.arange(num_train), y] = 1
+    dW -= X.T.dot(binarized_classes)
     
     dW /= num_train
 
@@ -199,7 +198,6 @@ def grid_search(learning_rates, regularization_strengths, classifier, X_train, y
             best_accuracy = validation_accuracy
             best_clf = clf
     return results, best_clf, best_accuracy
-
 
 def test(classifier, learning_rate, reg):
     X_train, y_train = load_batches(count=5, vectorize=False)
