@@ -75,8 +75,8 @@ def grid_search(learning_rates, regularization_strengths, classifier, X_train, y
     return results, best_clf, best_accuracy
 
 def test(classifier, learning_rate, reg):
-    X_train, y_train = load_batches(count=5, vectorize=False)
-    X_test, y_test = load_test_batch(vectorize=False)
+    X_train, y_train = load_batches(count=5, vectorize=False, normalize=True)
+    X_test, y_test = load_test_batch(vectorize=False, normalize=True)
 
     num_training = 49000
     num_validation = 1000
@@ -87,23 +87,23 @@ def test(classifier, learning_rate, reg):
 
     # Validation set
     X_val = X_train[num_training:num_training + num_validation]
-    X_val -= mean_img
+    X_val = X_val - mean_img
     y_val = y_train[num_training:num_training + num_validation]
 
     # Train set
     X_train = X_train[:num_training]
-    X_train -= mean_img
+    X_train = X_train - mean_img
     y_train = y_train[:num_training]
 
     # Test set
     X_test = X_test[:num_test]
-    X_test -= mean_img
+    X_test = X_test - mean_img
     y_test = y_test[:num_test]
 
     # Dev set
     mask = np.random.choice(num_training, num_dev, replace=False)
     X_dev = X_train[mask]
-    X_dev -= mean_img
+    X_dev = X_dev - mean_img
     y_dev = y_train[mask]
 
     # Add an extra column for the bias
@@ -118,7 +118,7 @@ def test(classifier, learning_rate, reg):
     print('X_dev.shape: {}'.format(X_dev.shape))
 
     clf = classifier()
-    clf.fit(X_train, y_train, learning_rate=7e-3, reg=5, batch_size=500, num_iters=400, verbose=True)
+    clf.fit(X_train, y_train, learning_rate=learning_rate, reg=reg, batch_size=500, num_iters=400, verbose=True)
 
     accuracy = (clf.predict(X_test) == y_test).mean()
     print('Test Accuracy: {}'.format(accuracy))
