@@ -5,6 +5,7 @@ from ..cifar import *
 from .linear import numerical_gradient
 
 DISABLE_TRAIN_ACCURACY = True
+PERFORM_PCA = False
 
 class TwoLayerNet(object):
 
@@ -35,13 +36,10 @@ class TwoLayerNet(object):
         scores1 = np.maximum(scores1, 0)
 
         if self.dropout != 0.0:
-            H1 = np.random.rand(*scores1.shape) > self.dropout
-            scores1 *= H1
+            dropout_mask = np.random.rand(*scores1.shape) > self.dropout
+            scores1 *= dropout_mask
 
         scores2 = scores1.dot(W2) + b2
-        if self.dropout != 0.0:
-            H2 = np.random.rand(*scores2.shape) > self.dropout
-            scores2 *= H2
         if y is None:
             return scores2
 
@@ -59,10 +57,10 @@ class TwoLayerNet(object):
         grad['W2'] = scores1.T.dot(c) / N
         grad['b2'] = np.sum(c, axis=0) / N
 
-        d_scores1 = c.dot(W2.T)
+        d_scores1 = c.dot(W2.T) / N
         d_thresh = d_scores1 * (scores1 != 0)
-        grad['W1'] = X.T.dot(d_thresh) / N
-        grad['b1'] = d_thresh.sum(axis=0) / N
+        grad['W1'] = X.T.dot(d_thresh)
+        grad['b1'] = d_thresh.sum(axis=0)
 
         grad['W2'] += reg * W2
         grad['W1'] += reg * W1
@@ -138,28 +136,37 @@ def test():
     num_validation = 1000
     num_test = 1000
     num_dev = 500
+    features = 32 * 32 * 3 
 
     mean_img = X_train.mean(axis=0)
+    X_train = X_train - mean_img
+    X_test = X_test - mean_img
+
+    if PERFORM_PCA:
+        print('Finding covariance...')
+        cov = np.dot(X_train.T, X_train) / X_train.shape[0]
+        print('Performing SVD...')
+        U, S, V = np.linalg.svd(cov)
+        print('Finished SVD!')
+        features = 500
+        X_train = np.dot(X_train, U[:, :features])
+        X_test = np.dot(X_test, U[:, :features])
 
     # Validation set
     X_val = X_train[num_training:num_training + num_validation]
-    X_val = X_val - mean_img
     y_val = y_train[num_training:num_training + num_validation]
 
     # Train set
     X_train = X_train[:num_training]
-    X_train = X_train - mean_img
     y_train = y_train[:num_training]
 
     # Test set
     X_test = X_test[:num_test]
-    X_test = X_test - mean_img
     y_test = y_test[:num_test]
 
     # Dev set
     mask = np.random.choice(num_training, num_dev, replace=False)
     X_dev = X_train[mask]
-    X_dev = X_dev - mean_img
     y_dev = y_train[mask]
 
     print('X_train.shape: {}'.format(X_train.shape))
@@ -167,7 +174,7 @@ def test():
     print('X_val.shape: {}'.format(X_val.shape))
     print('X_dev.shape: {}'.format(X_dev.shape))
 
-    clf = TwoLayerNet(32 * 32 * 3, 50, 10)
+    clf = TwoLayerNet(features, 50, 10, dropout=0.10)
 
     learning_rate = 0.0005756259848890687
     reg = 5.595546771648509e-05
