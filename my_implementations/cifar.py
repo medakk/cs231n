@@ -24,7 +24,7 @@ def load_batch(batch_name):
     batch = {str(k, 'utf-8'):v for k,v in unpickled.items()}
     return batch
 
-def load_batch_xy(batch_name, vectorize=True, normalize=True):
+def load_batch_xy(batch_name, vectorize=True, normalize=True, three_dim=False):
     """
     Only obtain the pixel data and corresponding
     class-labels in numpy-arrays
@@ -41,9 +41,12 @@ def load_batch_xy(batch_name, vectorize=True, normalize=True):
     if vectorize:
         Y = vectorize_y(Y)
 
+    if three_dim:
+        X = X.reshape(X.shape[0], 3, 32, 32).astype('float')
+
     return X,Y
 
-def load_batches(count=5, vectorize=True, normalize=True):
+def load_batches(count=5, vectorize=True, normalize=True, three_dim=False):
     """Loads the first ``count`` batches,
     stacks them vertically and returns a two-tuple
     (X,Y). The Y axis is optionally vectorized"""
@@ -55,13 +58,16 @@ def load_batches(count=5, vectorize=True, normalize=True):
         X.append(x)
         Y.append(y)
     if vectorize:
-        return np.vstack(X), np.vstack(Y)
+        X, y = np.vstack(X), np.vstack(Y)
     else:
-        return np.vstack(X), np.hstack(Y)
+        X, y = np.vstack(X), np.hstack(Y)
+    if three_dim:
+        X = X.reshape(X.shape[0], 3, 32, 32).astype('float')
+    return X, y
 
-def load_test_batch(vectorize=True, normalize=True):
+def load_test_batch(vectorize=True, normalize=True, three_dim=False):
     """loads the test batch"""
-    return load_batch_xy('test_batch', vectorize, normalize)
+    return load_batch_xy('test_batch', vectorize, normalize, three_dim)
 
 def vectorize_y(Y):
     """converts the output from a single class label
@@ -135,3 +141,41 @@ def load_tiny():
     X_test, y_test = X_test[:500], y_test[:500]
 
     return X_train, y_train, X_test, y_test
+
+def solver_quickload():
+    """
+    return a dictionary with X_train, y_train, X_val, y_val that can be fed
+    to the neural network solver
+    """
+    X_train, y_train = load_batches(count=5, vectorize=False, normalize=False)
+
+    X_val, y_val = X_train[49000:], y_train[49000:]
+    X_train, y_train = X_train[:49000], y_train[:49000]
+
+    mean_img = X_train.mean(axis=0)
+
+    X_train = X_train - mean_img
+    X_val = X_val - mean_img
+
+    data = {'X_train': X_train, 'y_train': y_train, 'X_val':X_val, 'y_val':y_val} 
+
+    return data
+
+def cifar_3d_data():
+    """
+    Generate 4D data to be fed to the convolutional neural network
+    """
+    X_train, y_train = load_batches(count=5, normalize=False, vectorize=False, three_dim=True)
+    X_val, y_val = X_train[-1000:], y_train[-1000:]
+    X_train, y_train = X_train[:-1000], y_train[:-1000]
+    
+    mean_img = X_train.mean(axis=0)
+    X_train = X_train - mean_img
+    X_val = X_val - mean_img
+
+    data = {'X_train': X_train,
+            'y_train': y_train,
+            'X_val':   X_val,
+            'y_val':   y_val}
+    return data
+
