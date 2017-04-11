@@ -1,0 +1,1 @@
+This repository contains my solutions to the assignments in CS231n, Winter 2016. I used 2to3 to convert all the assignment code from Python2 to Python3. Other than that, everything is the same as in the original assignments.
